@@ -1,0 +1,9 @@
+version: '3.4'
+
+services:
+  document.analyzer.api:
+    image: ${DOCKER_REGISTRY-}documentanalyzerapi
+    build:
+      context: .
+      dockerfile: Document.Analyzer.Api/Dockerfile
+    container_name: document-analyzer-azure-api

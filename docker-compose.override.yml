@@ -1,0 +1,14 @@
+version: '3.4'
+
+services:
+  document.analyzer.api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_HTTPS_PORT=44319
+      - FORM_RECOGNIZER_SUBSCRIPTION_KEY=xx
+      - FORM_RECOGNIZER_ENDPOINT=xx
+      - STORAGE_CREDENTIAL_KEYVALUE=xx
+    ports:
+      - "63264:80"
+      - "44319:443"
