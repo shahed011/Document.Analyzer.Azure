@@ -59,6 +59,14 @@ namespace Document.Analyzer.Azure
                 app.UseDeveloperExceptionPage();
             }
 
+            app.Map("/operations/status", configuration =>
+            {
+                configuration.Run(async context =>
+                {
+                    await context.Response.WriteAsync("IPMONITOROK");
+                });
+            });
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
