@@ -5,11 +5,11 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/core/sdk:3.0-buster AS build
 WORKDIR /src
-COPY ["Document.Analyzer.Api/Document.Analyzer.Api.csproj", "Document.Analyzer.Azure/"]
-COPY ["Document.Analyzer.Services/Document.Analyzer.Services.csproj", "Document.Analyzer.Azure/"]
-RUN dotnet restore "Document.Analyzer.Azure/Document.Analyzer.Api.csproj"
+COPY ["Document.Analyzer.Api/Document.Analyzer.Api.csproj", "Document.Analyzer.Api/"]
+COPY ["Document.Analyzer.Services/Document.Analyzer.Services.csproj", "Document.Analyzer.Services/"]
+RUN dotnet restore "Document.Analyzer.Api/Document.Analyzer.Api.csproj"
 COPY . .
-WORKDIR "/src/Document.Analyzer.Azure"
+WORKDIR "/src/Document.Analyzer.Api"
 RUN dotnet build "Document.Analyzer.Api.csproj" -c Release -o /app/build
 
 FROM build AS publish
