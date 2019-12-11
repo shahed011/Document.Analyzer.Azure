@@ -3,6 +3,7 @@ using Document.Analyzer.Services.Infrastructure.Configuration;
 using Document.Analyzer.Services.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.CognitiveServices.FormRecognizer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
