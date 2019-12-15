@@ -22,17 +22,35 @@ namespace Document.Analyzer.Api.Controllers
 
         [HttpPost]
         [Route("analyze")]
-        public async Task<IActionResult> Get(IFormFile file)
+        public async Task<IActionResult> AnalyzeDocument(IFormFile file, [FromForm] string modelId)
         {
             try
             {
                 //var fileKey = await _fileService.UploadFileAsync(file);
-                var response = await _documentAnalyzerService.RunFormRecognizerClient(file);
+                var response = await _documentAnalyzerService.RunFormRecognizerClient(file, modelId);
                 return Ok(response);
             }
             catch (Exception ex)
             {
                 _logger.LogInformation(ex, "Error analyzing document");
+            }
+
+            return NoContent();
+        }
+
+        [HttpPost]
+        [Route("Train")]
+        public async Task<IActionResult> TrainModel()
+        {
+            try
+            {
+                //var fileKey = await _fileService.UploadFileAsync(file);
+                var response = await _documentAnalyzerService.TrainFormRecognizerModel();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation(ex, "Error training model");
             }
 
             return NoContent();

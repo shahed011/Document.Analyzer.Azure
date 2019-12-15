@@ -2,8 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.CognitiveServices.FormRecognizer;
 using Microsoft.Azure.CognitiveServices.FormRecognizer.Models;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Serilog;
 using System;
@@ -23,6 +21,7 @@ namespace Document.Analyzer.Services.Services
         private readonly ILogger _logger;
 
         private const string TempFileName = "file{0}";
+        private readonly List<string> ColumnTextsToCheck = new List<string> {"amount", "transaction", "refund", "commission", "chargeback"};
 
         public DocumentAnalyzerService(IFormRecognizerClient formRecognizerClient, CloudBlobClient cloudBlobClient, AzureStorageSettings azureStorageSettings, ILogger logger)
         {
@@ -32,7 +31,15 @@ namespace Document.Analyzer.Services.Services
             _logger = logger;
         }
 
-        public async Task<Dictionary<string, double>> RunFormRecognizerClient(IFormFile file)
+        public async Task<Guid> TrainFormRecognizerModel()
+        {
+            _logger.Information("Train Model with training data...");
+
+            var uri = GetTrainingContainerUri();
+            return await TrainModelAsync(uri);
+        }
+
+        public async Task<Dictionary<string, double>> RunFormRecognizerClient(IFormFile file, string modelId = "")
         {
             _logger.Information("Get list of trained models ...");
             var modelIds = await GetListOfModels();
@@ -44,11 +51,19 @@ namespace Document.Analyzer.Services.Services
                 var uri = GetTrainingContainerUri();
 
                 _logger.Information("Train Model with training data...");
-                var modelId = await TrainModelAsync(uri);
+                var newModelId = await TrainModelAsync(uri);
             }
 
             _logger.Information("Analyze file...");
-            return await AnalyzePdfForm(modelIds.First(), file);
+
+            var modelIdGuid = modelIds.First();
+
+            if (!string.IsNullOrEmpty(modelId) && Guid.TryParse(modelId, out var guidResult))
+            {
+                modelIdGuid = guidResult;
+            }
+
+            return await AnalyzePdfForm(modelIdGuid, file);
 
             //_logger.Information("Delete Model...");
             //await DeleteModel(modelId);
@@ -154,7 +169,7 @@ namespace Document.Analyzer.Services.Services
                 {
                     foreach (var column in table.Columns)
                     {
-                        if (column.Header.Any(x => x.Text.Contains("amount", StringComparison.OrdinalIgnoreCase)))
+                        if (column.Header.Any(x => ColumnTextsToCheck.Any(y => x.Text.Contains(y, StringComparison.OrdinalIgnoreCase))))
                         {
                             var sum = column.Entries.SelectMany(x => x.Where(y => double.TryParse(y.Text, out _))).Select(x => double.Parse(x.Text)).Sum();
 
