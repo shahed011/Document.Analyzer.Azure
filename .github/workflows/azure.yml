@@ -1,0 +1,34 @@
+on:
+  push:
+    branches:
+      - master
+
+name: Deploy to Azure ECS
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+	
+	steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+	  
+	- uses: azure/docker-login@v1
+      with:
+        login-server: documentanalyzer.azurecr.io
+        username: ${{ secrets.AZURE_REGISTRY_USERNAME }}
+        password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
+		
+	- run: |
+        docker build . -t documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }}
+        docker push documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }}
+		
+	- uses: azure/webapps-container-deploy@v1
+      with:
+        app-name: 'document-analyzer'
+        images: 'documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }}'
+		
+	- name: Azure logout
+      run: |
+        az logout
