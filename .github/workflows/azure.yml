@@ -21,8 +21,8 @@ jobs:
         password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
 
     - run: |
-        docker build . -t documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }}
-        docker push documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }}
+        sudo docker build -f /home/runner/work/Document.Analyzer.Azure/Document.Analyzer.Azure/Document.Analyzer.Api/Dockerfile -t documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }} .
+        sudo docker push documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }}
 
     - uses: azure/webapps-container-deploy@v1
       with:
