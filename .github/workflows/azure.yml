@@ -23,12 +23,12 @@ jobs:
     - run: |
         docker build . -t documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }}
         docker push documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }}
-	
+
     - uses: azure/webapps-container-deploy@v1
       with:
         app-name: 'document-analyzer'
         images: 'documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }}'
-	
+    
     - name: Azure logout
       run: |
         az logout
