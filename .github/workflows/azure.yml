@@ -6,7 +6,7 @@ on:
 name: Deploy to Azure ECS
 
 jobs:
-  deploy:
+  build-and-deploy:
     name: Deploy
     runs-on: ubuntu-latest
 
@@ -25,9 +25,16 @@ jobs:
         username: ${{ secrets.AZURE_REGISTRY_USERNAME }}
         password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
 
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        FORM_RECOGNIZER_ENDPOINT: ${{ secrets.FORM_RECOGNIZER_ENDPOINT }}
+        FORM_RECOGNIZER_SUBSCRIPTION_KEY: ${{ secrets.FORM_RECOGNIZER_SUBSCRIPTION_KEY }}
+        STORAGE_CREDENTIAL_KEYVALUE: ${{ secrets.STORAGE_CREDENTIAL_KEYVALUE }}
+        IMAGE_TAG: ${{ github.sha }}
     - run: |
-        sudo docker build -f /home/runner/work/Document.Analyzer.Azure/Document.Analyzer.Azure/Document.Analyzer.Api/Dockerfile -t documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }} .
-        sudo docker push documentanalyzer.azurecr.io/documentanalyzer:${{ github.sha }}
+        sudo docker build . -f /home/runner/work/Document.Analyzer.Azure/Document.Analyzer.Azure/Document.Analyzer.Api/Dockerfile -t documentanalyzer.azurecr.io/documentanalyzer:$IMAGE_TAG
+        sudo docker push documentanalyzer.azurecr.io/documentanalyzer:$IMAGE_TAG
 
     - uses: azure/webapps-container-deploy@v1
       with:
