@@ -32,7 +32,7 @@ jobs:
         FORM_RECOGNIZER_SUBSCRIPTION_KEY: ${{ secrets.FORM_RECOGNIZER_SUBSCRIPTION_KEY }}
         STORAGE_CREDENTIAL_KEYVALUE: ${{ secrets.STORAGE_CREDENTIAL_KEYVALUE }}
         IMAGE_TAG: ${{ github.sha }}
-    - run: |
+      run: |
         sudo docker build . -f /home/runner/work/Document.Analyzer.Azure/Document.Analyzer.Azure/Document.Analyzer.Api/Dockerfile -t documentanalyzer.azurecr.io/documentanalyzer:$IMAGE_TAG
         sudo docker push documentanalyzer.azurecr.io/documentanalyzer:$IMAGE_TAG
 
