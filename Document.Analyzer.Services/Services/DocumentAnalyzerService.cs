@@ -51,14 +51,14 @@ namespace Document.Analyzer.Services.Services
                 var uri = GetTrainingContainerUri();
 
                 _logger.Information("Train Model with training data...");
-                var newModelId = await TrainModelAsync(uri);
+                modelIds.Add(await TrainModelAsync(uri));
             }
 
             _logger.Information("Analyze file...");
 
             var modelIdGuid = modelIds.First();
 
-            if (!string.IsNullOrEmpty(modelId) && Guid.TryParse(modelId, out var guidResult))
+            if (!string.IsNullOrEmpty(modelId) && Guid.TryParse(modelId, out var guidResult) && modelIds.Contains(guidResult))
             {
                 modelIdGuid = guidResult;
             }
@@ -98,7 +98,7 @@ namespace Document.Analyzer.Services.Services
 
                 _logger.Information($"Analyzed file {file.FileName}:");
                 //return DisplayAnalyzeResult(result);
-                var val = DisplayAnalyzeResult(result);
+                //var val = DisplayAnalyzeResult(result);
                 return GetAllAmountsAndValues(result);
             }
             catch (ErrorResponseException responseEx)
@@ -165,6 +165,16 @@ namespace Document.Analyzer.Services.Services
 
             foreach (var page in analysisResult.Pages)
             {
+                //foreach (var kv in page.KeyValuePairs)
+                //{
+                //    if (kv.Key.Any(x => ColumnTextsToCheck.Any(y => x.Text.Contains(y, StringComparison.OrdinalIgnoreCase))))
+                //    {
+                //        var key = string.Join(" ", kv.Key.Select(x => x.Text));
+                //        var value = kv.Value.Where(x => double.TryParse(x.Text, out _)).Select(x => double.Parse(x.Text)).Sum();
+                //        result.Add(key, value);
+                //    }
+                //}
+
                 foreach (var table in page.Tables)
                 {
                     foreach (var column in table.Columns)
@@ -177,6 +187,14 @@ namespace Document.Analyzer.Services.Services
                             if (result.ContainsKey(key))
                             {
                                 result[key] += sum;
+                            }
+                            else if (result.Keys.Any(x => x.Contains(key)))
+                            {
+                                key = result.Keys.SingleOrDefault(x => x.Contains(key));
+                                if (key != null)
+                                {
+                                    result[key] += sum;
+                                }
                             }
                             else
                             {

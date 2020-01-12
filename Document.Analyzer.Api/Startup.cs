@@ -40,6 +40,7 @@ namespace Document.Analyzer.Azure
                         Endpoint = formRecognizerEndpoint
                     });
             services.AddSingleton<IDocumentAnalyzerService, DocumentAnalyzerService>();
+            services.AddSingleton<IResultAnalyzer, ResultAnalyzer>();
 
             var azureStorageSettings = Configuration.GetSection("AzureStorageSettings").Get<AzureStorageSettings>();
 

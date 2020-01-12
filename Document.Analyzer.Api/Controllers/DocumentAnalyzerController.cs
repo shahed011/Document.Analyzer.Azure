@@ -12,11 +12,13 @@ namespace Document.Analyzer.Api.Controllers
     public class DocumentAnalyzerController : ControllerBase
     {
         private readonly IDocumentAnalyzerService _documentAnalyzerService;
+        private readonly IResultAnalyzer _resultAnalyzer;
         private readonly ILogger<DocumentAnalyzerController> _logger;
 
-        public DocumentAnalyzerController(IDocumentAnalyzerService documentAnalyzerService, ILogger<DocumentAnalyzerController> logger)
+        public DocumentAnalyzerController(IDocumentAnalyzerService documentAnalyzerService, IResultAnalyzer resultAnalyzer, ILogger<DocumentAnalyzerController> logger)
         {
             _documentAnalyzerService = documentAnalyzerService;
+            _resultAnalyzer = resultAnalyzer;
             _logger = logger;
         }
 
@@ -27,7 +29,8 @@ namespace Document.Analyzer.Api.Controllers
             try
             {
                 //var fileKey = await _fileService.UploadFileAsync(file);
-                var response = await _documentAnalyzerService.RunFormRecognizerClient(file, modelId);
+                var docAnalyzeResponse = await _documentAnalyzerService.RunFormRecognizerClient(file, modelId);
+                var response = _resultAnalyzer.AnalyzerResult(docAnalyzeResponse);
                 return Ok(response);
             }
             catch (Exception ex)
