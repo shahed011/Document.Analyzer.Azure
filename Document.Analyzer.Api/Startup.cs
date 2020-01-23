@@ -1,4 +1,6 @@
 using System;
+using Amazon.S3;
+using Amazon.S3.Transfer;
 using Document.Analyzer.Services.Infrastructure.Configuration;
 using Document.Analyzer.Services.Services;
 using Microsoft.AspNetCore.Builder;
@@ -30,7 +32,6 @@ namespace Document.Analyzer.Azure
             services.AddControllers();
             services.AddSingleton(Log.Logger);
 
-
             var subscriptionKey = Environment.GetEnvironmentVariable("FORM_RECOGNIZER_SUBSCRIPTION_KEY");
             var formRecognizerEndpoint = Environment.GetEnvironmentVariable("FORM_RECOGNIZER_ENDPOINT");
 
@@ -41,8 +42,10 @@ namespace Document.Analyzer.Azure
                     });
             services.AddSingleton<IDocumentAnalyzerService, DocumentAnalyzerService>();
             services.AddSingleton<IResultAnalyzer, ResultAnalyzer>();
+            services.AddSingleton<IMlModelService, MlModelService>();
 
             var azureStorageSettings = Configuration.GetSection("AzureStorageSettings").Get<AzureStorageSettings>();
+            var s3Settings = Configuration.GetSection("S3Settings").Get<S3Settings>();
 
             var storageCredentialKeyValue = Environment.GetEnvironmentVariable("STORAGE_CREDENTIAL_KEYVALUE");
             StorageCredentials storageCredentials = new StorageCredentials(azureStorageSettings.StorageName, storageCredentialKeyValue);
@@ -51,6 +54,13 @@ namespace Document.Analyzer.Azure
 
             services.AddSingleton(blobClient);
             services.AddSingleton(azureStorageSettings);
+            services.AddSingleton(s3Settings);
+
+            services.AddDefaultAWSOptions(Configuration.GetAWSOptions());
+            services.AddAWSService<IAmazonS3>();
+            services.AddSingleton<ITransferUtility, TransferUtility>();
+            services.AddSingleton<IS3FileService, S3FileService>();
+            services.AddSingleton<IFileBuilder, FileBuilder>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

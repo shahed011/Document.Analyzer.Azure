@@ -9,6 +9,10 @@ services:
       - FORM_RECOGNIZER_SUBSCRIPTION_KEY=xx
       - FORM_RECOGNIZER_ENDPOINT=xx
       - STORAGE_CREDENTIAL_KEYVALUE=xx
+      - AWS_ACCESS_KEY_ID=xx
+      - AWS_SECRET_ACCESS_KEY=xx
+      - AWS_REGION=eu-west-2
+      - S3Storage__Bucket=document-analyzer-bucket
     ports:
       - "63264:80"
       - "44319:443"

@@ -1,8 +1,7 @@
-﻿using Document.Analyzer.Services.Infrastructure.Configuration;
+﻿using Document.Analyzer.Services.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.CognitiveServices.FormRecognizer;
 using Microsoft.Azure.CognitiveServices.FormRecognizer.Models;
-using Microsoft.WindowsAzure.Storage.Blob;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -16,42 +15,32 @@ namespace Document.Analyzer.Services.Services
     public class DocumentAnalyzerService : IDocumentAnalyzerService
     {
         private readonly IFormRecognizerClient _formRecognizerClient;
-        private readonly CloudBlobClient _cloudBlobClient;
-        private readonly AzureStorageSettings _azureStorageSettings;
+        private readonly IMlModelService _mlModelService;
+        private readonly IFileBuilder _fileBuilder;
+        private readonly IS3FileService _s3FileService;
         private readonly ILogger _logger;
 
         private const string TempFileName = "file{0}";
-        private readonly List<string> ColumnTextsToCheck = new List<string> {"amount", "transaction", "refund", "commission", "chargeback"};
+        private readonly List<string> ColumnTextsToCheck = new List<string> {"transaction", "refund", "commission", "chargeback"};
 
-        public DocumentAnalyzerService(IFormRecognizerClient formRecognizerClient, CloudBlobClient cloudBlobClient, AzureStorageSettings azureStorageSettings, ILogger logger)
+        public DocumentAnalyzerService(IFormRecognizerClient formRecognizerClient, IMlModelService mlModelService, IFileBuilder fileBuilder, IS3FileService s3FileService, ILogger logger)
         {
             _formRecognizerClient = formRecognizerClient;
-            _cloudBlobClient = cloudBlobClient;
-            _azureStorageSettings = azureStorageSettings;
+            _mlModelService = mlModelService;
+            _fileBuilder = fileBuilder;
+            _s3FileService = s3FileService;
             _logger = logger;
         }
 
-        public async Task<Guid> TrainFormRecognizerModel()
-        {
-            _logger.Information("Train Model with training data...");
 
-            var uri = GetTrainingContainerUri();
-            return await TrainModelAsync(uri);
-        }
-
-        public async Task<Dictionary<string, double>> RunFormRecognizerClient(IFormFile file, string modelId = "")
+        public async Task<AnalyzerResponse> RunFormRecognizerClient(IFormFile file, string modelId = "")
         {
             _logger.Information("Get list of trained models ...");
-            var modelIds = await GetListOfModels();
-
-            //await _formRecognizerClient.DeleteCustomModelAsync(modelIds.First());
+            var modelIds = await _mlModelService.GetAllTrainedModelIds();
 
             if (!modelIds.Any())
             {
-                var uri = GetTrainingContainerUri();
-
-                _logger.Information("Train Model with training data...");
-                modelIds.Add(await TrainModelAsync(uri));
+                throw new InvalidOperationException("No trained model found. Can not analyzer document. Please train a model first");
             }
 
             _logger.Information("Analyze file...");
@@ -64,18 +53,13 @@ namespace Document.Analyzer.Services.Services
             }
 
             return await AnalyzePdfForm(modelIdGuid, file);
-
-            //_logger.Information("Delete Model...");
-            //await DeleteModel(modelId);
         }
 
-        private async Task<Dictionary<string, double>> AnalyzePdfForm(Guid modelId, IFormFile  file)
+        private async Task<AnalyzerResponse> AnalyzePdfForm(Guid modelId, IFormFile  file)
         {
             if (file.Length <= 0)
             {
-                _logger.Error("Invalid formFile.");
-                //return string.Empty;
-                return new Dictionary<string, double>();
+                throw new InvalidDataException("Invalid formFile");
             }
 
             try
@@ -89,7 +73,7 @@ namespace Document.Analyzer.Services.Services
                 stream.Close();
 
                 using var fileStream = new FileStream(fileName, FileMode.Open);
-                AnalyzeResult result = await _formRecognizerClient.AnalyzeWithCustomModelAsync(modelId, fileStream, file.ContentType);
+                var result = await _formRecognizerClient.AnalyzeWithCustomModelAsync(modelId, fileStream, file.ContentType);
 
                 if (File.Exists(fileName))
                 {
@@ -97,9 +81,12 @@ namespace Document.Analyzer.Services.Services
                 }
 
                 _logger.Information($"Analyzed file {file.FileName}:");
-                //return DisplayAnalyzeResult(result);
-                //var val = DisplayAnalyzeResult(result);
-                return GetAllAmountsAndValues(result);
+
+                var analyzerResponse =  GetAllAmountsAndValues(result);
+                var analzyerResultBuildFileStream = _fileBuilder.BuildFileFromAnalyzeResult(result);
+                analyzerResponse.AnalzyerResultBuildFileId = await _s3FileService.UploadFileAsync(analzyerResultBuildFileStream);
+
+                return analyzerResponse;
             }
             catch (ErrorResponseException responseEx)
             {
@@ -110,8 +97,7 @@ namespace Document.Analyzer.Services.Services
                 _logger.Error(ex, "Error while analyzing file");
             }
 
-            //return string.Empty;
-            return new Dictionary<string, double>();
+            return new AnalyzerResponse();
         }
 
         private string DisplayAnalyzeResult(AnalyzeResult result)
@@ -159,12 +145,25 @@ namespace Document.Analyzer.Services.Services
             return output.ToString();
         }
 
-        private Dictionary<string, double> GetAllAmountsAndValues(AnalyzeResult analysisResult)
+        private AnalyzerResponse GetAllAmountsAndValues(AnalyzeResult analyzeResult)
         {
-            var result = new Dictionary<string, double>();
-
-            foreach (var page in analysisResult.Pages)
+            var respose = new AnalyzerResponse
             {
+                NumberOfPagesAnalyzed = analyzeResult.Pages.Count,
+                Pages = new List<AnalyzedPageDetials>()
+            };
+
+            var columnValuePair = new Dictionary<string, double>();
+
+            foreach (var page in analyzeResult.Pages)
+            {
+                var analyzedPage = new AnalyzedPageDetials
+                {
+                    PageNumber = page.Number,
+                    NumberOfTables = page.Tables.Count(),
+                    Tables = new List<AnalyzedTableDetails>()
+                };
+
                 //foreach (var kv in page.KeyValuePairs)
                 //{
                 //    if (kv.Key.Any(x => ColumnTextsToCheck.Any(y => x.Text.Contains(y, StringComparison.OrdinalIgnoreCase))))
@@ -177,119 +176,48 @@ namespace Document.Analyzer.Services.Services
 
                 foreach (var table in page.Tables)
                 {
+                    var analyzedTable = new AnalyzedTableDetails
+                    {
+                        ColumnRowCountPair = new List<Tuple<string, int>>()
+                    };
+
                     foreach (var column in table.Columns)
                     {
-                        if (column.Header.Any(x => ColumnTextsToCheck.Any(y => x.Text.Contains(y, StringComparison.OrdinalIgnoreCase))))
+                        analyzedTable.ColumnRowCountPair.Add(Tuple.Create(string.Join(" ", column.Header.Select(x => x.Text)), column.Entries.Count));
+
+                        if (column.Header.Any(x => ColumnTextsToCheck.Any(y => x.Text.Trim().Equals(y.Trim(), StringComparison.OrdinalIgnoreCase))))
                         {
                             var sum = column.Entries.SelectMany(x => x.Where(y => double.TryParse(y.Text, out _))).Select(x => double.Parse(x.Text)).Sum();
 
                             var key = string.Join(" ", column.Header.Select(x => x.Text));
-                            if (result.ContainsKey(key))
+                            if (columnValuePair.ContainsKey(key))
                             {
-                                result[key] += sum;
+                                columnValuePair[key] += sum;
                             }
-                            else if (result.Keys.Any(x => x.Contains(key)))
+                            else if (columnValuePair.Keys.Any(x => x.Contains(key)))
                             {
-                                key = result.Keys.SingleOrDefault(x => x.Contains(key));
+                                key = columnValuePair.Keys.SingleOrDefault(x => x.Contains(key));
                                 if (key != null)
                                 {
-                                    result[key] += sum;
+                                    columnValuePair[key] += sum;
                                 }
                             }
                             else
                             {
-                                result.Add(key, sum);
+                                columnValuePair.Add(key, sum);
                             }
                         }
                     }
+
+                    analyzedPage.Tables.Add(analyzedTable);
                 }
+
+                respose.Pages.Add(analyzedPage);
             }
 
-            return result;
-        }
+            respose.ColumnValuePair = columnValuePair;
 
-        private string GetTrainingContainerUri()
-        {
-            //// Create storagecredentials object by reading the values from the configuration (appsettings.json)
-            //StorageCredentials storageCredentials = new StorageCredentials("documentanalyzerstorage", "dDTZvB5bd6Ln2sReoxFabxtxdo5K4wN8II9nLSBnX2bfqnhMz40zMLSm8wNyCi6KRHvGcueQLg4O9fCPSAfuyw==");
-
-            //// Create cloudstorage account by passing the storagecredentials
-            //CloudStorageAccount storageAccount = new CloudStorageAccount(storageCredentials, true);
-
-            //// Create the blob client.
-            //CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-
-            // Get reference to the blob container by passing the name by reading the value from the configuration (appsettings.json)
-            var container = _cloudBlobClient.GetContainerReference(_azureStorageSettings.TrainingContainerName);
-
-            string sasContainerToken;
-
-            // If no stored policy is specified, create a new access policy and define its constraints.
-            //if (storedPolicyName == null)
-            //{
-            // Note that the SharedAccessBlobPolicy class is used both to define the parameters of an ad hoc SAS, and
-            // to construct a shared access policy that is saved to the container's shared access policies.
-            var adHocPolicy = new SharedAccessBlobPolicy()
-            {
-                // When the start time for the SAS is omitted, the start time is assumed to be the time when the storage service receives the request.
-                // Omitting the start time for a SAS that is effective immediately helps to avoid clock skew.
-                SharedAccessExpiryTime = DateTime.UtcNow.AddMinutes(10),
-                Permissions = SharedAccessBlobPermissions.Read | SharedAccessBlobPermissions.List
-            };
-
-            // Generate the shared access signature on the container, setting the constraints directly on the signature.
-            sasContainerToken = container.GetSharedAccessSignature(adHocPolicy, null);
-            //}
-            //else
-            //{
-            //    // Generate the shared access signature on the container. In this case, all of the constraints for the
-            //    // shared access signature are specified on the stored access policy, which is provided by name.
-            //    // It is also possible to specify some constraints on an ad hoc SAS and others on the stored access policy.
-            //    sasContainerToken = container.GetSharedAccessSignature(null, storedPolicyName);
-
-            //    Console.WriteLine("SAS for blob container (stored access policy): {0}", sasContainerToken);
-            //    Console.WriteLine();
-            //}
-
-            // Return the URI string for the container, including the SAS token.
-            return container.Uri + sasContainerToken;
-        }
-
-        private async Task<List<Guid>> GetListOfModels()
-        {
-            try
-            {
-                var models = await _formRecognizerClient.GetCustomModelsAsync();
-                return models.ModelsProperty.Select(x => x.ModelId).ToList();
-            }
-            catch (ErrorResponseException ex)
-            {
-                _logger.Error(ex, "Error getting list of trained models ...");
-                throw ex;
-            }
-        }
-
-        private async Task<Guid> TrainModelAsync(string uri)
-        {
-            if (!Uri.IsWellFormedUriString(uri, UriKind.Absolute))
-            {
-                _logger.Error("\nInvalid trainingDataUrl:\n{0} \n", uri);
-                return Guid.Empty;
-            }
-
-            try
-            {
-                TrainResult result = await _formRecognizerClient.TrainCustomModelAsync(new TrainRequest(uri));
-                ModelResult model = await _formRecognizerClient.GetCustomModelAsync(result.ModelId);
-
-                _logger.Information($"Id: {model.ModelId}, Status: {model.Status}");
-                return result.ModelId;
-            }
-            catch (ErrorResponseException ex)
-            {
-                _logger.Error(ex, "Error training Model");
-                return Guid.Empty;
-            }
+            return respose;
         }
     }
 }

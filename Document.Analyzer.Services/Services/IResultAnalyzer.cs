@@ -5,6 +5,6 @@ namespace Document.Analyzer.Services.Services
 {
     public interface IResultAnalyzer
     {
-        AnalyzerResponse AnalyzerResult(Dictionary<string, double> extractedValues);
+        void AnalyzerResult(AnalyzerResponse analyzerResponse);
     }
 }

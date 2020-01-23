@@ -1,4 +1,5 @@
 ﻿using Document.Analyzer.Services.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,35 +11,33 @@ namespace Document.Analyzer.Services.Services
         private const string Refund = "Refund";
         private const string Chargeback = "Chargeback";
 
-        public AnalyzerResponse AnalyzerResult(Dictionary<string, double> extractedValues)
+        public void AnalyzerResult(AnalyzerResponse analyzerResponse)
         {
-            var response = new AnalyzerResponse { AnalyzerResult = extractedValues, RecommandationOnRefund = "N/A", RecommandationOnChargeback = "N/A" };
+            var extractedColumnValuePair = analyzerResponse.ColumnValuePair ?? new Dictionary<string, double>();
 
-            if (!extractedValues.Keys.Any(x => x.Contains(Transaction)))
-                return response;
+            if (!extractedColumnValuePair.Keys.Any(x => x.Contains(Transaction, StringComparison.OrdinalIgnoreCase)))
+                return;
 
-            var transactoinKey = extractedValues.Keys.Single(x => x.Contains(Transaction));
-            var transactionTotal = extractedValues[transactoinKey];
+            var transactoinKey = extractedColumnValuePair.Keys.Single(x => x.Contains(Transaction, StringComparison.OrdinalIgnoreCase));
+            var transactionTotal = extractedColumnValuePair[transactoinKey];
 
-            if (extractedValues.Keys.Any(x => x.Contains(Refund)))
+            if (extractedColumnValuePair.Keys.Any(x => x.Contains(Refund, StringComparison.OrdinalIgnoreCase)))
             {
-                var key = extractedValues.Keys.Single(x => x.Contains(Refund));
-                var totalRefund = extractedValues[key];
-                response.RefundPercentage = (totalRefund / transactionTotal) * 100;
+                var key = extractedColumnValuePair.Keys.Single(x => x.Contains(Refund, StringComparison.OrdinalIgnoreCase));
+                var totalRefund = extractedColumnValuePair[key];
+                analyzerResponse.RefundPercentage = (totalRefund / transactionTotal) * 100;
 
-                response.RecommandationOnRefund = response.RefundPercentage > 20 ? "Consider reject" : "Consider accept";
+                analyzerResponse.RecommandationOnRefund = analyzerResponse.RefundPercentage > 20 ? "Consider reject" : "Consider accept";
             }
 
-            if (extractedValues.Keys.Any(x => x.Contains(Chargeback)))
+            if (extractedColumnValuePair.Keys.Any(x => x.Contains(Chargeback, StringComparison.OrdinalIgnoreCase)))
             {
-                var key = extractedValues.Keys.Single(x => x.Contains(Chargeback));
-                var totalChargeback = extractedValues[key];
-                response.ChargebackPercentage = (totalChargeback / transactionTotal) * 100;
+                var key = extractedColumnValuePair.Keys.Single(x => x.Contains(Chargeback, StringComparison.OrdinalIgnoreCase));
+                var totalChargeback = extractedColumnValuePair[key];
+                analyzerResponse.ChargebackPercentage = (totalChargeback / transactionTotal) * 100;
 
-                response.RecommandationOnChargeback = response.ChargebackPercentage > 20 ? "Consider reject" : "Consider accept";
+                analyzerResponse.RecommandationOnChargeback = analyzerResponse.ChargebackPercentage > 20 ? "Consider reject" : "Consider accept";
             }
-
-            return response;
         }
     }
 }
