@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.S3" Version="3.3.110.14" />
+    <PackageReference Include="AWSSDK.S3" Version="3.3.110.18" />
     <PackageReference Include="EPPlus" Version="4.5.3.2" />
     <PackageReference Include="Microsoft.Azure.CognitiveServices.FormRecognizer" Version="0.8.0-preview" />
     <PackageReference Include="Serilog" Version="2.9.0" />

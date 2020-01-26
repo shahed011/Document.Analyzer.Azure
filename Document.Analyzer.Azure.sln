@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29509.3
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Document.Analyzer.Api", "Document.Analyzer.Api\Document.Analyzer.Api.csproj", "{2B6951F2-B971-47DD-AE7A-B30CE01EFA0E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentAnalyzer.Api", "DocumentAnalyzer.Api\DocumentAnalyzer.Api.csproj", "{2B6951F2-B971-47DD-AE7A-B30CE01EFA0E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Document.Analyzer.Services", "Document.Analyzer.Services\Document.Analyzer.Services.csproj", "{7C5D8DB9-7D9F-483D-BDEC-7715AA351713}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentAnalyzer.Services", "DocumentAnalyzer.Services\DocumentAnalyzer.Services.csproj", "{7C5D8DB9-7D9F-483D-BDEC-7715AA351713}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{4FAB8350-FA73-4BED-8F73-CFDAA2E22AF5}"
 EndProject
@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 	ProjectSection(SolutionItems) = preProject
 		task-definition.json = task-definition.json
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentAnalyzer.Api.Common", "DocumentAnalyzer.Api.Common\DocumentAnalyzer.Api.Common.csproj", "{F549FD96-F995-4F89-B10C-EA483054E2AA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,6 +34,10 @@ Global
 		{4FAB8350-FA73-4BED-8F73-CFDAA2E22AF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4FAB8350-FA73-4BED-8F73-CFDAA2E22AF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4FAB8350-FA73-4BED-8F73-CFDAA2E22AF5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F549FD96-F995-4F89-B10C-EA483054E2AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F549FD96-F995-4F89-B10C-EA483054E2AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F549FD96-F995-4F89-B10C-EA483054E2AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F549FD96-F995-4F89-B10C-EA483054E2AA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

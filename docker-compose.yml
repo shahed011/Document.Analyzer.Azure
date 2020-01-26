@@ -5,5 +5,5 @@ services:
     image: ${DOCKER_REGISTRY-}documentanalyzerapi
     build:
       context: .
-      dockerfile: Document.Analyzer.Api/Dockerfile
+      dockerfile: DocumentAnalyzer.Api/Dockerfile
     container_name: document-analyzer-azure-api

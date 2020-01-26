@@ -15,10 +15,10 @@ namespace Document.Analyzer.Services.Services
     {
         private readonly IFormRecognizerClient _formRecognizerClient;
         private readonly CloudBlobClient _cloudBlobClient;
-        private readonly AzureStorageSettings _azureStorageSettings;
+        private readonly AzureSettings _azureStorageSettings;
         private readonly ILogger _logger;
 
-        public MlModelService(IFormRecognizerClient formRecognizerClient, CloudBlobClient cloudBlobClient, AzureStorageSettings azureStorageSettings, ILogger logger)
+        public MlModelService(IFormRecognizerClient formRecognizerClient, CloudBlobClient cloudBlobClient, AzureSettings azureStorageSettings, ILogger logger)
         {
             _formRecognizerClient = formRecognizerClient;
             _cloudBlobClient = cloudBlobClient;
