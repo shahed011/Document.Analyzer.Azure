@@ -9,7 +9,7 @@ COPY ["DocumentAnalyzer.Api/DocumentAnalyzer.Api.csproj", "DocumentAnalyzer.Api/
 COPY ["DocumentAnalyzer.Services/DocumentAnalyzer.Services.csproj", "DocumentAnalyzer.Services/"]
 RUN dotnet restore "DocumentAnalyzer.Api/DocumentAnalyzer.Api.csproj"
 COPY . .
-WORKDIR "/src/Document.Analyzer.Api"
+WORKDIR "/src/DocumentAnalyzer.Api"
 RUN dotnet build "DocumentAnalyzer.Api.csproj" -c Release -o /app/build
 
 FROM build AS publish
