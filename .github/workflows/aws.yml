@@ -64,7 +64,7 @@ jobs:
         # Build a docker container and
         # push it to ECR so that it can
         # be deployed to ECS.
-        sudo docker build -f /home/runner/work/Document.Analyzer.Azure/Document.Analyzer.Azure/Document.Analyzer.Api/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        sudo docker build -f /home/runner/work/Document.Analyzer.Azure/Document.Analyzer.Azure/DocumentAnalyzer.Api/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         sudo docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
